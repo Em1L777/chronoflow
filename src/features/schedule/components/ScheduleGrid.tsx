@@ -1,16 +1,19 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useScheduleStore } from '../store/useScheduleStore';
 import { AppointmentCard } from './AppointmentCard';
-import { generateTimeSlots, timeToMinutes } from '../utils/time';
+import { generateTimeSlots } from '../utils/time';
+import { SCHEDULE_CONFIG } from '../constants';
+import type { SelectedSlot } from '../types';
 
-const SLOT_HEIGHT_PX = 36; // Высота получасового слота в пикселях
-const START_HOUR = 9;
-const END_HOUR = 18;
-const START_DAY_MINUTES = START_HOUR * 60;
+interface ScheduleGridProps {
+  onSelectEmptySlot: (slot: SelectedSlot) => void;
+}
 
-export const ScheduleGrid: React.FC = () => {
+export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
+  onSelectEmptySlot,
+}) => {
   const { specialists, appointments, timeZone } = useScheduleStore();
-  const timeSlots = generateTimeSlots(START_HOUR, END_HOUR, 30);
+  const timeSlots = useMemo(() => generateTimeSlots(), []);
 
   return (
     <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-x-auto">
@@ -49,7 +52,7 @@ export const ScheduleGrid: React.FC = () => {
             return (
               <div
                 key={time}
-                style={{ height: `${SLOT_HEIGHT_PX}px` }}
+                style={{ height: `${SCHEDULE_CONFIG.SLOT_HEIGHT_PX}px` }}
                 className="grid grid-cols-[100px_repeat(5,1fr)] border-b border-slate-100 last:border-b-0"
               >
                 {/* Time Label Column */}
@@ -57,12 +60,24 @@ export const ScheduleGrid: React.FC = () => {
                   {isFullHour ? time : ''}
                 </div>
 
-                {/* Grid Cells */}
-                {specialists.map((spec, specIndex) => (
-                  <div
+                {/* Interactive Empty Slot Cells */}
+                {specialists.map((spec) => (
+                  <button
                     key={`${spec.id}-${slotIndex}`}
-                    className="border-r last:border-r-0 border-slate-100 hover:bg-slate-50/50 transition-colors"
-                  />
+                    type="button"
+                    aria-label={`Book ${spec.name} at ${time}`}
+                    onClick={() =>
+                      onSelectEmptySlot({
+                        specialistId: spec.id,
+                        startTime: time,
+                      })
+                    }
+                    className="group relative border-r last:border-r-0 border-slate-100 hover:bg-indigo-50/40 transition-colors cursor-pointer text-left focus:outline-none focus-visible:bg-indigo-50/60"
+                  >
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[11px] font-medium text-indigo-600/80 pl-2">
+                      + {time}
+                    </span>
+                  </button>
                 ))}
               </div>
             );
@@ -76,14 +91,9 @@ export const ScheduleGrid: React.FC = () => {
               );
 
               return (
-                <div key={spec.id} className="relative h-full pointer-events-auto">
+                <div key={spec.id} className="relative h-full pointer-events-none">
                   {specAppointments.map((app) => (
-                    <AppointmentCard
-                      key={app.id}
-                      appointment={app}
-                      slotHeightPx={SLOT_HEIGHT_PX}
-                      startDayMinutes={START_DAY_MINUTES}
-                    />
+                    <AppointmentCard key={app.id} appointment={app} />
                   ))}
                 </div>
               );

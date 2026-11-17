@@ -1,14 +1,20 @@
 import { create } from 'zustand';
-import type { Specialist, Appointment } from '../types';
+import type {
+  Appointment,
+  CreateAppointmentPayload,
+  Specialist,
+} from '../types';
 
 interface ScheduleState {
   currentDate: string;
   timeZone: string;
   specialists: Specialist[];
   appointments: Appointment[];
-  // Заготовка под интерактивность
   selectedAppointmentId: string | null;
+
   setSelectedAppointment: (id: string | null) => void;
+  addAppointment: (payload: CreateAppointmentPayload) => void;
+  updateAppointment: (id: string, patch: Partial<Omit<Appointment, 'id'>>) => void;
 }
 
 const MOCK_SPECIALISTS: Specialist[] = [
@@ -55,5 +61,24 @@ export const useScheduleStore = create<ScheduleState>((set) => ({
   specialists: MOCK_SPECIALISTS,
   appointments: MOCK_APPOINTMENTS,
   selectedAppointmentId: null,
+
   setSelectedAppointment: (id) => set({ selectedAppointmentId: id }),
+
+  addAppointment: (payload) =>
+    set((state) => ({
+      appointments: [
+        ...state.appointments,
+        {
+          ...payload,
+          id: `app-${crypto.randomUUID().slice(0, 8)}`,
+        },
+      ],
+    })),
+
+  updateAppointment: (id, patch) =>
+    set((state) => ({
+      appointments: state.appointments.map((app) =>
+        app.id === id ? { ...app, ...patch } : app
+      ),
+    })),
 }));

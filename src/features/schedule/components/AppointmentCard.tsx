@@ -2,11 +2,10 @@ import React from 'react';
 import { clsx } from 'clsx';
 import type { Appointment, AppointmentColor } from '../types';
 import { timeToMinutes } from '../utils/time';
+import { SCHEDULE_CONFIG, START_DAY_MINUTES } from '../constants';
 
 interface AppointmentCardProps {
   appointment: Appointment;
-  slotHeightPx: number;
-  startDayMinutes: number;
 }
 
 const COLOR_STYLES: Record<AppointmentColor, { bg: string; border: string }> = {
@@ -26,38 +25,45 @@ const COLOR_STYLES: Record<AppointmentColor, { bg: string; border: string }> = {
 
 export const AppointmentCard: React.FC<AppointmentCardProps> = ({
   appointment,
-  slotHeightPx,
-  startDayMinutes,
 }) => {
   const startMinutes = timeToMinutes(appointment.startTime);
   const endMinutes = timeToMinutes(appointment.endTime);
 
-  const topOffsetPx = ((startMinutes - startDayMinutes) / 30) * slotHeightPx;
-  const heightPx = ((endMinutes - startMinutes) / 30) * slotHeightPx;
+  const topOffsetPx =
+    ((startMinutes - START_DAY_MINUTES) / SCHEDULE_CONFIG.STEP_MINUTES) *
+    SCHEDULE_CONFIG.SLOT_HEIGHT_PX;
+  const heightPx =
+    ((endMinutes - startMinutes) / SCHEDULE_CONFIG.STEP_MINUTES) *
+    SCHEDULE_CONFIG.SLOT_HEIGHT_PX;
 
   const styleConfig = COLOR_STYLES[appointment.colorVariant] || COLOR_STYLES.slate;
+  const isCompact = heightPx <= SCHEDULE_CONFIG.SLOT_HEIGHT_PX;
 
   return (
     <div
+      onClick={(e) => e.stopPropagation()}
       style={{
         top: `${topOffsetPx}px`,
         height: `${heightPx}px`,
       }}
       className={clsx(
-        'absolute left-1 right-1 rounded-md p-2.5 border-l-4 transition-shadow hover:shadow-md cursor-pointer overflow-hidden flex flex-col justify-between',
+        'pointer-events-auto absolute left-1 right-1 rounded-md border-l-4 transition-shadow hover:shadow-md cursor-pointer overflow-hidden flex flex-col justify-between select-none',
+        isCompact ? 'px-2.5 py-1' : 'p-2.5',
         styleConfig.bg,
         styleConfig.border
       )}
     >
-      <div>
-        <span className="text-xs font-normal opacity-80 block tracking-tight">
+      <div className="min-w-0">
+        <span className="text-xs font-normal opacity-80 block tracking-tight leading-none">
           {appointment.startTime} - {appointment.endTime}
         </span>
-        <h4 className="text-sm font-semibold leading-tight mt-0.5">
+        <h4 className="text-sm font-semibold leading-tight mt-0.5 truncate">
           {appointment.serviceName}
         </h4>
       </div>
-      <p className="text-xs opacity-75">{appointment.clientName}</p>
+      {!isCompact && (
+        <p className="text-xs opacity-75 truncate">{appointment.clientName}</p>
+      )}
     </div>
   );
 };
