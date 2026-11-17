@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type {
   Appointment,
   CreateAppointmentPayload,
+  DragPreview,
   Specialist,
 } from '../types';
 
@@ -11,8 +12,10 @@ interface ScheduleState {
   specialists: Specialist[];
   appointments: Appointment[];
   selectedAppointmentId: string | null;
+  dragPreview: DragPreview | null;
 
   setSelectedAppointment: (id: string | null) => void;
+  setDragPreview: (preview: DragPreview | null) => void;
   addAppointment: (payload: CreateAppointmentPayload) => void;
   updateAppointment: (id: string, patch: Partial<Omit<Appointment, 'id'>>) => void;
 }
@@ -61,8 +64,11 @@ export const useScheduleStore = create<ScheduleState>((set) => ({
   specialists: MOCK_SPECIALISTS,
   appointments: MOCK_APPOINTMENTS,
   selectedAppointmentId: null,
+  dragPreview: null,
 
   setSelectedAppointment: (id) => set({ selectedAppointmentId: id }),
+
+  setDragPreview: (preview) => set({ dragPreview: preview }),
 
   addAppointment: (payload) =>
     set((state) => ({

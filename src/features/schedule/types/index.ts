@@ -24,3 +24,14 @@ export interface SelectedSlot {
   specialistId: string;
   startTime: string;
 }
+
+export interface DragPreview {
+  appointmentId: string;
+  specialistId: string;
+  startTime: string;
+  endTime: string;
+  serviceName: string;
+  clientName: string;
+  colorVariant: AppointmentColor;
+  isValid: boolean;
+}

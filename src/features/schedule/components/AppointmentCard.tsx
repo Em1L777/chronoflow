@@ -5,9 +5,11 @@ import { timeToMinutes } from '../utils/time';
 import { SCHEDULE_CONFIG, START_DAY_MINUTES } from '../constants';
 import { useScheduleStore } from '../store/useScheduleStore';
 import { useAppointmentResize } from '../hooks/useAppointmentResize';
+import { useAppointmentDrag } from '../hooks/useAppointmentDrag';
 
 interface AppointmentCardProps {
   appointment: Appointment;
+  gridColumnsRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const COLOR_STYLES: Record<AppointmentColor, { bg: string; border: string }> = {
@@ -27,9 +29,12 @@ const COLOR_STYLES: Record<AppointmentColor, { bg: string; border: string }> = {
 
 export const AppointmentCard: React.FC<AppointmentCardProps> = ({
   appointment,
+  gridColumnsRef,
 }) => {
+  const specialists = useScheduleStore((state) => state.specialists);
   const appointments = useScheduleStore((state) => state.appointments);
   const updateAppointment = useScheduleStore((state) => state.updateAppointment);
+  const setDragPreview = useScheduleStore((state) => state.setDragPreview);
 
   const {
     isResizing,
@@ -41,6 +46,15 @@ export const AppointmentCard: React.FC<AppointmentCardProps> = ({
     appointment,
     allAppointments: appointments,
     onCommitResize: (id, nextTimes) => updateAppointment(id, nextTimes),
+  });
+
+  const { isDragging, dragHandlers } = useAppointmentDrag({
+    appointment,
+    specialists,
+    allAppointments: appointments,
+    gridColumnsRef,
+    onDragPreviewChange: setDragPreview,
+    onCommitDrop: (id, patch) => updateAppointment(id, patch),
   });
 
   const startMinutes = timeToMinutes(displayStartTime);
@@ -58,6 +72,7 @@ export const AppointmentCard: React.FC<AppointmentCardProps> = ({
 
   return (
     <div
+      {...dragHandlers}
       onClick={(e) => e.stopPropagation()}
       style={{
         top: `${topOffsetPx}px`,
@@ -68,9 +83,11 @@ export const AppointmentCard: React.FC<AppointmentCardProps> = ({
         isCompact ? 'px-2.5 py-1' : 'p-2.5',
         styleConfig.bg,
         styleConfig.border,
-        isResizing
-          ? 'z-20 shadow-lg ring-2 transition-none'
-          : 'z-10 transition-shadow hover:shadow-md cursor-pointer',
+        isDragging && 'opacity-40 cursor-grabbing z-10',
+        isResizing && 'z-20 shadow-lg ring-2 transition-none',
+        !isDragging &&
+          !isResizing &&
+          'z-10 transition-shadow hover:shadow-md cursor-grab',
         isResizing &&
           (isInvalidResize
             ? 'ring-rose-500/80 bg-rose-100/95'

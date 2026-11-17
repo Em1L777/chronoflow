@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
+import { clsx } from 'clsx';
 import { useScheduleStore } from '../store/useScheduleStore';
 import { AppointmentCard } from './AppointmentCard';
-import { generateTimeSlots } from '../utils/time';
-import { SCHEDULE_CONFIG } from '../constants';
+import { generateTimeSlots, timeToMinutes } from '../utils/time';
+import { SCHEDULE_CONFIG, START_DAY_MINUTES } from '../constants';
 import type { SelectedSlot } from '../types';
 
 interface ScheduleGridProps {
@@ -12,8 +13,9 @@ interface ScheduleGridProps {
 export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   onSelectEmptySlot,
 }) => {
-  const { specialists, appointments, timeZone } = useScheduleStore();
+  const { specialists, appointments, timeZone, dragPreview } = useScheduleStore();
   const timeSlots = useMemo(() => generateTimeSlots(), []);
+  const gridColumnsRef = useRef<HTMLDivElement | null>(null);
 
   return (
     <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-x-auto">
@@ -84,20 +86,77 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
           })}
 
           {/* Absolute Appointment Overlay Columns */}
-          <div className="absolute inset-0 pl-[100px] grid grid-cols-5 pointer-events-none">
-            {specialists.map((spec) => {
-              const specAppointments = appointments.filter(
-                (a) => a.specialistId === spec.id
-              );
+          <div className="absolute inset-0 pl-[100px] pointer-events-none">
+            <div
+              ref={gridColumnsRef}
+              className="grid grid-cols-5 h-full w-full pointer-events-none"
+            >
+              {specialists.map((spec) => {
+                const specAppointments = appointments.filter(
+                  (a) => a.specialistId === spec.id
+                );
 
-              return (
-                <div key={spec.id} className="relative h-full pointer-events-none">
-                  {specAppointments.map((app) => (
-                    <AppointmentCard key={app.id} appointment={app} />
-                  ))}
-                </div>
-              );
-            })}
+                const showPreviewInColumn =
+                  dragPreview !== null && dragPreview.specialistId === spec.id;
+
+                const previewTopPx = showPreviewInColumn
+                  ? ((timeToMinutes(dragPreview.startTime) - START_DAY_MINUTES) /
+                      SCHEDULE_CONFIG.STEP_MINUTES) *
+                    SCHEDULE_CONFIG.SLOT_HEIGHT_PX
+                  : 0;
+
+                const previewHeightPx = showPreviewInColumn
+                  ? ((timeToMinutes(dragPreview.endTime) -
+                      timeToMinutes(dragPreview.startTime)) /
+                      SCHEDULE_CONFIG.STEP_MINUTES) *
+                    SCHEDULE_CONFIG.SLOT_HEIGHT_PX
+                  : 0;
+
+                return (
+                  <div key={spec.id} className="relative h-full pointer-events-none">
+                    {specAppointments.map((app) => (
+                      <AppointmentCard
+                        key={app.id}
+                        appointment={app}
+                        gridColumnsRef={gridColumnsRef}
+                      />
+                    ))}
+
+                    {/* Drop Target Ghost Preview */}
+                    {showPreviewInColumn && (
+                      <div
+                        style={{
+                          top: `${previewTopPx}px`,
+                          height: `${previewHeightPx}px`,
+                        }}
+                        className={clsx(
+                          'pointer-events-none absolute left-1 right-1 z-30 rounded-md border-2 border-dashed px-2.5 py-1.5 flex flex-col justify-between transition-all duration-75',
+                          dragPreview.isValid
+                            ? 'border-indigo-500 bg-indigo-50/85 text-indigo-950 shadow-md'
+                            : 'border-rose-500 bg-rose-50/90 text-rose-950 shadow-md'
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <span className="text-xs font-medium block leading-none">
+                            {dragPreview.startTime} - {dragPreview.endTime}
+                          </span>
+                          <h4 className="text-sm font-semibold leading-tight mt-0.5 truncate">
+                            {dragPreview.serviceName}
+                          </h4>
+                        </div>
+                        {previewHeightPx > SCHEDULE_CONFIG.SLOT_HEIGHT_PX && (
+                          <p className="text-xs opacity-75 truncate">
+                            {dragPreview.isValid
+                              ? dragPreview.clientName
+                              : 'Slot occupied'}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
