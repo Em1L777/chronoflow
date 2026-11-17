@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   END_DAY_MINUTES,
   SCHEDULE_CONFIG,
@@ -20,6 +20,7 @@ interface DragSession {
   initialStartMinutes: number;
   durationMinutes: number;
   hasActivated: boolean;
+  lastEmittedPreview: DragPreview | null;
 }
 
 interface UseAppointmentDragParams {
@@ -34,6 +35,16 @@ interface UseAppointmentDragParams {
   ) => void;
 }
 
+const isSamePreview = (a: DragPreview | null, b: DragPreview): boolean => {
+  if (!a) return false;
+  return (
+    a.specialistId === b.specialistId &&
+    a.startTime === b.startTime &&
+    a.endTime === b.endTime &&
+    a.isValid === b.isValid
+  );
+};
+
 export const useAppointmentDrag = ({
   appointment,
   specialists,
@@ -45,12 +56,26 @@ export const useAppointmentDrag = ({
   const sessionRef = useRef<DragSession | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && sessionRef.current) {
+        sessionRef.current = null;
+        setIsDragging(false);
+        onDragPreviewChange(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDragging, onDragPreviewChange]);
+
   const computeDropTarget = (
     session: DragSession,
     clientX: number,
     clientY: number
   ): DragPreview => {
-    // 1. Вертикальный расчёт времени с сохранением длительности
     const deltaY = clientY - session.startY;
     const slotDelta = Math.round(deltaY / SCHEDULE_CONFIG.SLOT_HEIGHT_PX);
     const deltaMinutes = slotDelta * SCHEDULE_CONFIG.STEP_MINUTES;
@@ -65,7 +90,6 @@ export const useAppointmentDrag = ({
     const startTime = minutesToTime(clampedStartMinutes);
     const endTime = minutesToTime(clampedEndMinutes);
 
-    // 2. Горизонтальный расчёт колонки специалиста
     let targetSpecialistId = appointment.specialistId;
     const columnsEl = gridColumnsRef.current;
 
@@ -81,7 +105,6 @@ export const useAppointmentDrag = ({
       targetSpecialistId = specialists[clampedIndex].id;
     }
 
-    // 3. Проверка пересечения с другими записями целевого специалиста
     const overlaps = hasAppointmentOverlap(
       allAppointments,
       targetSpecialistId,
@@ -118,6 +141,7 @@ export const useAppointmentDrag = ({
       initialStartMinutes: startMin,
       durationMinutes: endMin - startMin,
       hasActivated: false,
+      lastEmittedPreview: null,
     };
   };
 
@@ -139,7 +163,11 @@ export const useAppointmentDrag = ({
     }
 
     const preview = computeDropTarget(session, e.clientX, e.clientY);
-    onDragPreviewChange(preview);
+
+    if (!isSamePreview(session.lastEmittedPreview, preview)) {
+      session.lastEmittedPreview = preview;
+      onDragPreviewChange(preview);
+    }
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {

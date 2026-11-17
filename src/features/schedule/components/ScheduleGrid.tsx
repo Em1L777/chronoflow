@@ -17,18 +17,35 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   const timeSlots = useMemo(() => generateTimeSlots(), []);
   const gridColumnsRef = useRef<HTMLDivElement | null>(null);
 
+  const fullRowGridStyle = useMemo(
+    () => ({
+      gridTemplateColumns: `100px repeat(${specialists.length}, minmax(0, 1fr))`,
+    }),
+    [specialists.length]
+  );
+
+  const specialistsColumnsStyle = useMemo(
+    () => ({
+      gridTemplateColumns: `repeat(${specialists.length}, minmax(0, 1fr))`,
+    }),
+    [specialists.length]
+  );
+
   return (
     <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-x-auto">
       <div className="min-w-[800px]">
         {/* Header Row: Specialists */}
-        <div className="grid grid-cols-[100px_repeat(5,1fr)] border-b border-slate-200">
+        <div
+          style={fullRowGridStyle}
+          className="grid border-b border-slate-200"
+        >
           <div className="p-4 flex items-end justify-center font-medium text-xs text-slate-400 border-r border-slate-200/80">
             {timeZone}
           </div>
 
-          {specialists.map((spec, index) => (
+          {specialists.map((spec) => (
             <div
-              key={`${spec.id}-${index}`}
+              key={spec.id}
               className="p-3 border-r last:border-r-0 border-slate-200/80 flex items-center gap-3"
             >
               <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-medium text-xs flex items-center justify-center shrink-0">
@@ -54,8 +71,11 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
             return (
               <div
                 key={time}
-                style={{ height: `${SCHEDULE_CONFIG.SLOT_HEIGHT_PX}px` }}
-                className="grid grid-cols-[100px_repeat(5,1fr)] border-b border-slate-100 last:border-b-0"
+                style={{
+                  ...fullRowGridStyle,
+                  height: `${SCHEDULE_CONFIG.SLOT_HEIGHT_PX}px`,
+                }}
+                className="grid border-b border-slate-100 last:border-b-0"
               >
                 {/* Time Label Column */}
                 <div className="pr-3 text-right text-xs text-slate-400 border-r border-slate-200/80 select-none -translate-y-2">
@@ -89,7 +109,8 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
           <div className="absolute inset-0 pl-[100px] pointer-events-none">
             <div
               ref={gridColumnsRef}
-              className="grid grid-cols-5 h-full w-full pointer-events-none"
+              style={specialistsColumnsStyle}
+              className="grid h-full w-full pointer-events-none"
             >
               {specialists.map((spec) => {
                 const specAppointments = appointments.filter(

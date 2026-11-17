@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   END_DAY_MINUTES,
   SCHEDULE_CONFIG,
@@ -43,6 +43,23 @@ export const useAppointmentResize = ({
 
   const [isInvalidOverlap, setIsInvalidOverlap] = useState(false);
 
+  const isResizing = previewTimes !== null;
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && sessionRef.current) {
+        sessionRef.current = null;
+        setPreviewTimes(null);
+        setIsInvalidOverlap(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isResizing]);
+
   const calculateNextTimes = (
     session: ResizeSession,
     currentClientY: number
@@ -80,10 +97,8 @@ export const useAppointmentResize = ({
 
   const handleResizePointerDown =
     (edge: ResizeEdge) => (e: React.PointerEvent<HTMLDivElement>) => {
-      // Обрабатываем только основную кнопку мыши / касание
       if (e.button !== 0 && e.pointerType === 'mouse') return;
 
-      // Изолируем событие, чтобы не сработал клик или Drag & Drop самой карточки
       e.stopPropagation();
       e.currentTarget.setPointerCapture(e.pointerId);
 
@@ -108,6 +123,15 @@ export const useAppointmentResize = ({
     e.stopPropagation();
 
     const nextTimes = calculateNextTimes(session, e.clientY);
+
+    if (
+      previewTimes &&
+      previewTimes.startTime === nextTimes.startTime &&
+      previewTimes.endTime === nextTimes.endTime
+    ) {
+      return;
+    }
+
     const overlaps = hasAppointmentOverlap(
       allAppointments,
       appointment.specialistId,
@@ -170,7 +194,7 @@ export const useAppointmentResize = ({
   });
 
   return {
-    isResizing: previewTimes !== null,
+    isResizing,
     isInvalidResize: isInvalidOverlap,
     displayStartTime: previewTimes?.startTime ?? appointment.startTime,
     displayEndTime: previewTimes?.endTime ?? appointment.endTime,
