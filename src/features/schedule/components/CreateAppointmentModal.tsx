@@ -4,6 +4,7 @@ import { clsx } from 'clsx';
 import { useScheduleStore } from '../store/useScheduleStore';
 import type { AppointmentColor, SelectedSlot } from '../types';
 import {
+  formatFullDate,
   generateTimeOptions,
   hasAppointmentOverlap,
   minutesToTime,
@@ -109,6 +110,7 @@ export const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
     const overlaps = hasAppointmentOverlap(
       appointments,
       specialist.id,
+      currentDate,
       startTime,
       endTime
     );
@@ -120,11 +122,14 @@ export const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
 
     addAppointment({
       specialistId: specialist.id,
+      date: currentDate,
       clientName: trimmedClient,
       serviceName: trimmedService,
       startTime,
       endTime,
       colorVariant,
+      status: 'scheduled',
+      notes: '',
     });
 
     onClose();
@@ -151,7 +156,9 @@ export const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
             >
               New Appointment
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">{currentDate}</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {formatFullDate(currentDate)}
+            </p>
           </div>
 
           <button

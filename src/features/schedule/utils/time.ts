@@ -35,7 +35,7 @@ export const snapMinutesToGrid = (
 };
 
 /**
- * Генерирует массив временных слотов от startHour до endHour (не включая конечную границу как начало слота).
+ * Генерирует массив временных слотов от startHour до endHour.
  */
 export const generateTimeSlots = (
   startHour: number = SCHEDULE_CONFIG.START_HOUR,
@@ -54,13 +54,15 @@ export const generateTimeSlots = (
 };
 
 /**
- * Генерирует список доступных вариантов времени для селектов формы (включая 18:00 для endTime).
+ * Генерирует список доступных вариантов времени для селектов формы.
  */
 export const generateTimeOptions = (
   includeEndBoundary: boolean = false
 ): string[] => {
   const options: string[] = [];
-  const limit = includeEndBoundary ? END_DAY_MINUTES : END_DAY_MINUTES - SCHEDULE_CONFIG.STEP_MINUTES;
+  const limit = includeEndBoundary
+    ? END_DAY_MINUTES
+    : END_DAY_MINUTES - SCHEDULE_CONFIG.STEP_MINUTES;
 
   for (let m = START_DAY_MINUTES; m <= limit; m += SCHEDULE_CONFIG.STEP_MINUTES) {
     options.push(minutesToTime(m));
@@ -70,11 +72,12 @@ export const generateTimeOptions = (
 };
 
 /**
- * Проверяет, пересекается ли интервал [startTime, endTime) с существующими записями специалиста.
+ * Проверяет пересечение интервала [startTime, endTime) на указанную дату у специалиста.
  */
 export const hasAppointmentOverlap = (
   appointments: Appointment[],
   specialistId: string,
+  date: string,
   startTime: string,
   endTime: string,
   excludeAppointmentId?: string
@@ -84,6 +87,7 @@ export const hasAppointmentOverlap = (
 
   return appointments.some((appointment) => {
     if (appointment.specialistId !== specialistId) return false;
+    if (appointment.date !== date) return false;
     if (excludeAppointmentId && appointment.id === excludeAppointmentId) return false;
 
     const existingStart = timeToMinutes(appointment.startTime);
@@ -91,4 +95,61 @@ export const hasAppointmentOverlap = (
 
     return candidateStart < existingEnd && candidateEnd > existingStart;
   });
+};
+
+/**
+ * Форматирует продолжительность записи в человекочитаемый вид ("1 h", "1 h 30 m", "30 m").
+ */
+export const formatDuration = (startTime: string, endTime: string): string => {
+  const totalMinutes = Math.max(0, timeToMinutes(endTime) - timeToMinutes(startTime));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours > 0 && minutes > 0) return `${hours} h ${minutes} m`;
+  if (hours > 0) return `${hours} h`;
+  return `${minutes} m`;
+};
+
+const parseIsoDateLocal = (isoDate: string): Date => {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+/**
+ * Форматирует ISO-дату "2026-10-22" в "Thursday, 22 October 2026".
+ */
+export const formatFullDate = (isoDate: string): string => {
+  const date = parseIsoDateLocal(isoDate);
+  const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
+  const day = date.getDate();
+  const month = date.toLocaleDateString('en-US', { month: 'long' });
+  const year = date.getFullYear();
+  return `${weekday}, ${day} ${month} ${year}`;
+};
+
+/**
+ * Форматирует ISO-дату "2026-10-22" в "Thu, 22 Oct 2026".
+ */
+export const formatShortDate = (isoDate: string): string => {
+  const date = parseIsoDateLocal(isoDate);
+  const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
+  const day = date.getDate();
+  const month = date.toLocaleDateString('en-US', { month: 'short' });
+  const year = date.getFullYear();
+  return `${weekday}, ${day} ${month} ${year}`;
+};
+
+/**
+ * Извлекает инициалы из имени клиента ("D. Lindgren" -> "DL", "John Doe" -> "JD").
+ */
+export const getInitials = (name: string): string => {
+  const parts = name
+    .replace(/\./g, '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 };

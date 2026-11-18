@@ -33,6 +33,7 @@ interface UseAppointmentDragParams {
     appointmentId: string,
     patch: { specialistId: string; startTime: string; endTime: string }
   ) => void;
+  onClick?: () => void;
 }
 
 const isSamePreview = (a: DragPreview | null, b: DragPreview): boolean => {
@@ -52,6 +53,7 @@ export const useAppointmentDrag = ({
   gridColumnsRef,
   onDragPreviewChange,
   onCommitDrop,
+  onClick,
 }: UseAppointmentDragParams) => {
   const sessionRef = useRef<DragSession | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -108,6 +110,7 @@ export const useAppointmentDrag = ({
     const overlaps = hasAppointmentOverlap(
       allAppointments,
       targetSpecialistId,
+      appointment.date,
       startTime,
       endTime,
       appointment.id
@@ -180,7 +183,9 @@ export const useAppointmentDrag = ({
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
 
-    if (session.hasActivated) {
+    const wasDragActivated = session.hasActivated;
+
+    if (wasDragActivated) {
       const finalTarget = computeDropTarget(session, e.clientX, e.clientY);
 
       const hasChanged =
@@ -200,6 +205,10 @@ export const useAppointmentDrag = ({
     sessionRef.current = null;
     setIsDragging(false);
     onDragPreviewChange(null);
+
+    if (!wasDragActivated) {
+      onClick?.();
+    }
   };
 
   const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {

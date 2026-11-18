@@ -135,6 +135,7 @@ export const useAppointmentResize = ({
     const overlaps = hasAppointmentOverlap(
       allAppointments,
       appointment.specialistId,
+      appointment.date,
       nextTimes.startTime,
       nextTimes.endTime,
       appointment.id
@@ -158,6 +159,7 @@ export const useAppointmentResize = ({
     const overlaps = hasAppointmentOverlap(
       allAppointments,
       appointment.specialistId,
+      appointment.date,
       finalTimes.startTime,
       finalTimes.endTime,
       appointment.id

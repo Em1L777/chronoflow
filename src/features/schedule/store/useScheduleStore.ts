@@ -7,7 +7,7 @@ import type {
 } from '../types';
 
 interface ScheduleState {
-  currentDate: string;
+  currentDate: string; // ISO формат "YYYY-MM-DD"
   timeZone: string;
   specialists: Specialist[];
   appointments: Appointment[];
@@ -18,11 +18,15 @@ interface ScheduleState {
   setDragPreview: (preview: DragPreview | null) => void;
   addAppointment: (payload: CreateAppointmentPayload) => void;
   updateAppointment: (id: string, patch: Partial<Omit<Appointment, 'id'>>) => void;
+  completeAppointment: (id: string) => void;
+  deleteAppointment: (id: string) => void;
 }
+
+const DEFAULT_DATE = '2026-10-22';
 
 const MOCK_SPECIALISTS: Specialist[] = [
   { id: 'spec-1', name: 'Anna Kovacs', role: 'Stylist', avatarInitials: 'AK' },
-  { id: 'spec-2', name: 'Marco Reyes', role: 'Barber', avatarInitials: 'AK' },
+  { id: 'spec-2', name: 'Marco Reyes', role: 'Barber', avatarInitials: 'MR' },
   { id: 'spec-3', name: 'Anna Kovacs', role: 'Stylist', avatarInitials: 'AK' },
   { id: 'spec-4', name: 'Anna Kovacs', role: 'Stylist', avatarInitials: 'AK' },
   { id: 'spec-5', name: 'Anna Kovacs', role: 'Stylist', avatarInitials: 'AK' },
@@ -32,34 +36,43 @@ const MOCK_APPOINTMENTS: Appointment[] = [
   {
     id: 'app-1',
     specialistId: 'spec-1',
+    date: DEFAULT_DATE,
     startTime: '09:00',
     endTime: '10:00',
     serviceName: 'Haircut & style',
     clientName: 'J. Morgan',
     colorVariant: 'slate',
+    status: 'scheduled',
+    notes: '',
   },
   {
     id: 'app-2',
     specialistId: 'spec-2',
+    date: DEFAULT_DATE,
     startTime: '14:30',
     endTime: '15:30',
     serviceName: 'Haircut',
     clientName: 'J. Morgan',
     colorVariant: 'rose',
+    status: 'scheduled',
+    notes: '',
   },
   {
     id: 'app-3',
     specialistId: 'spec-3',
+    date: DEFAULT_DATE,
     startTime: '14:30',
     endTime: '16:30',
     serviceName: 'Full Color',
     clientName: 'J. Morgan',
     colorVariant: 'sky',
+    status: 'scheduled',
+    notes: '',
   },
 ];
 
 export const useScheduleStore = create<ScheduleState>((set) => ({
-  currentDate: 'Thursday, 22 October 2026',
+  currentDate: DEFAULT_DATE,
   timeZone: 'CEST',
   specialists: MOCK_SPECIALISTS,
   appointments: MOCK_APPOINTMENTS,
@@ -86,5 +99,19 @@ export const useScheduleStore = create<ScheduleState>((set) => ({
       appointments: state.appointments.map((app) =>
         app.id === id ? { ...app, ...patch } : app
       ),
+    })),
+
+  completeAppointment: (id) =>
+    set((state) => ({
+      appointments: state.appointments.map((app) =>
+        app.id === id ? { ...app, status: 'completed' } : app
+      ),
+    })),
+
+  deleteAppointment: (id) =>
+    set((state) => ({
+      appointments: state.appointments.filter((app) => app.id !== id),
+      selectedAppointmentId:
+        state.selectedAppointmentId === id ? null : state.selectedAppointmentId,
     })),
 }));

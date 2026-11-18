@@ -13,9 +13,15 @@ interface ScheduleGridProps {
 export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
   onSelectEmptySlot,
 }) => {
-  const { specialists, appointments, timeZone, dragPreview } = useScheduleStore();
+  const { specialists, appointments, currentDate, timeZone, dragPreview } =
+    useScheduleStore();
   const timeSlots = useMemo(() => generateTimeSlots(), []);
   const gridColumnsRef = useRef<HTMLDivElement | null>(null);
+
+  const dayAppointments = useMemo(
+    () => appointments.filter((app) => app.date === currentDate),
+    [appointments, currentDate]
+  );
 
   const fullRowGridStyle = useMemo(
     () => ({
@@ -113,7 +119,7 @@ export const ScheduleGrid: React.FC<ScheduleGridProps> = ({
               className="grid h-full w-full pointer-events-none"
             >
               {specialists.map((spec) => {
-                const specAppointments = appointments.filter(
+                const specAppointments = dayAppointments.filter(
                   (a) => a.specialistId === spec.id
                 );
 

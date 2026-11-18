@@ -1,5 +1,6 @@
 import React from 'react';
 import { clsx } from 'clsx';
+import { Check } from 'lucide-react';
 import type { Appointment, AppointmentColor } from '../types';
 import { timeToMinutes } from '../utils/time';
 import { SCHEDULE_CONFIG, START_DAY_MINUTES } from '../constants';
@@ -33,8 +34,17 @@ export const AppointmentCard: React.FC<AppointmentCardProps> = ({
 }) => {
   const specialists = useScheduleStore((state) => state.specialists);
   const appointments = useScheduleStore((state) => state.appointments);
+  const selectedAppointmentId = useScheduleStore(
+    (state) => state.selectedAppointmentId
+  );
+  const setSelectedAppointment = useScheduleStore(
+    (state) => state.setSelectedAppointment
+  );
   const updateAppointment = useScheduleStore((state) => state.updateAppointment);
   const setDragPreview = useScheduleStore((state) => state.setDragPreview);
+
+  const isSelected = selectedAppointmentId === appointment.id;
+  const isCompleted = appointment.status === 'completed';
 
   const {
     isResizing,
@@ -55,6 +65,7 @@ export const AppointmentCard: React.FC<AppointmentCardProps> = ({
     gridColumnsRef,
     onDragPreviewChange: setDragPreview,
     onCommitDrop: (id, patch) => updateAppointment(id, patch),
+    onClick: () => setSelectedAppointment(appointment.id),
   });
 
   const startMinutes = timeToMinutes(displayStartTime);
@@ -83,11 +94,13 @@ export const AppointmentCard: React.FC<AppointmentCardProps> = ({
         isCompact ? 'px-2.5 py-1' : 'p-2.5',
         styleConfig.bg,
         styleConfig.border,
+        isCompleted && 'opacity-70',
+        isSelected && !isDragging && !isResizing && 'ring-2 ring-indigo-500/60',
         isDragging && 'opacity-40 cursor-grabbing z-10',
         isResizing && 'z-20 shadow-lg ring-2 transition-none',
         !isDragging &&
           !isResizing &&
-          'z-10 transition-shadow hover:shadow-md cursor-grab',
+          'z-10 transition-shadow hover:shadow-md cursor-pointer',
         isResizing &&
           (isInvalidResize
             ? 'ring-rose-500/80 bg-rose-100/95'
@@ -105,16 +118,41 @@ export const AppointmentCard: React.FC<AppointmentCardProps> = ({
 
       {/* Card Content */}
       <div className="min-w-0 pointer-events-none">
-        <span className="text-xs font-normal opacity-80 block tracking-tight leading-none">
-          {displayStartTime} - {displayEndTime}
-        </span>
-        <h4 className="text-sm font-semibold leading-tight mt-0.5 truncate">
+        <div className="flex items-center justify-between gap-1">
+          <span
+            className={clsx(
+              'text-xs font-normal opacity-80 block tracking-tight leading-none truncate',
+              isCompleted && 'line-through'
+            )}
+          >
+            {displayStartTime} - {displayEndTime}
+          </span>
+          {isCompleted && (
+            <span
+              title="Completed"
+              className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-emerald-600/15 text-emerald-700 shrink-0"
+            >
+              <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+            </span>
+          )}
+        </div>
+        <h4
+          className={clsx(
+            'text-sm font-semibold leading-tight mt-0.5 truncate',
+            isCompleted && 'line-through opacity-80'
+          )}
+        >
           {appointment.serviceName}
         </h4>
       </div>
 
       {!isCompact && (
-        <p className="text-xs opacity-75 truncate pointer-events-none">
+        <p
+          className={clsx(
+            'text-xs opacity-75 truncate pointer-events-none',
+            isCompleted && 'line-through'
+          )}
+        >
           {appointment.clientName}
         </p>
       )}
