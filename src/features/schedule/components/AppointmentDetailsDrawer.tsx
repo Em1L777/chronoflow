@@ -7,6 +7,8 @@ import {
   formatShortDate,
   getInitials,
 } from '../utils/time';
+import { RescheduleModal } from './RescheduleModal';
+import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 
 export const AppointmentDetailsDrawer: React.FC = () => {
   const appointments = useScheduleStore((state) => state.appointments);
@@ -21,6 +23,7 @@ export const AppointmentDetailsDrawer: React.FC = () => {
     (state) => state.completeAppointment
   );
   const updateAppointment = useScheduleStore((state) => state.updateAppointment);
+  const deleteAppointment = useScheduleStore((state) => state.deleteAppointment);
 
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -62,12 +65,23 @@ export const AppointmentDetailsDrawer: React.FC = () => {
   );
   const shortDateLabel = formatShortDate(appointment.date);
 
+  const handleCloseDrawer = () => {
+    setIsRescheduleOpen(false);
+    setIsDeleteConfirmOpen(false);
+    setSelectedAppointment(null);
+  };
+
+  const handleConfirmDelete = () => {
+    setIsDeleteConfirmOpen(false);
+    deleteAppointment(appointment.id);
+  };
+
   return (
     <>
       {/* Subtle Backdrop */}
       <div
         className="fixed inset-0 z-40 bg-slate-900/10 transition-opacity"
-        onClick={() => setSelectedAppointment(null)}
+        onClick={handleCloseDrawer}
         aria-hidden="true"
       />
 
@@ -101,9 +115,9 @@ export const AppointmentDetailsDrawer: React.FC = () => {
 
             <button
               type="button"
-              onClick={() => setSelectedAppointment(null)}
+              onClick={handleCloseDrawer}
               aria-label="Close appointment details"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -227,6 +241,21 @@ export const AppointmentDetailsDrawer: React.FC = () => {
           </div>
         </div>
       </aside>
+
+      {/* Sub-Modals */}
+      {isRescheduleOpen && (
+        <RescheduleModal
+          appointment={appointment}
+          onClose={() => setIsRescheduleOpen(false)}
+        />
+      )}
+
+      {isDeleteConfirmOpen && (
+        <DeleteConfirmationModal
+          onConfirmDelete={handleConfirmDelete}
+          onCancel={() => setIsDeleteConfirmOpen(false)}
+        />
+      )}
     </>
   );
 };
